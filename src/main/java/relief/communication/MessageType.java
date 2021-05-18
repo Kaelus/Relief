@@ -15,7 +15,8 @@ public class MessageType {
 	public static final int MSG_T_WRITE_ATTEST = 5;
 	public static final int MSG_T_READ_ATTEST = 6;
 	public static final int MSG_T_SCH_UP_FORWARD = 7;
-
+	public static final int MSG_T_CLEAR_HISTORY = 8;
+	public static final int MSG_T_CLEAR_DATA = 9;
 	
 	// old
 	public static final int MSG_T_UP = 100;

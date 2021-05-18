@@ -271,4 +271,10 @@ public class ReliefDynamoDBHistoryManager implements ReliefDKVS {
 		return resp;
 	}
 	
+	@Override
+	public void clear() {
+		deleteTable(tableName);		
+		createTable(tableName);
+	}
+	
 }

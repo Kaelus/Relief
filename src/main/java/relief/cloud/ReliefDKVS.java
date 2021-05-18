@@ -15,4 +15,6 @@ public interface ReliefDKVS {
 
 	public ReliefDKVSResponse remove(String key);
 
+	public void clear();
+	
 }

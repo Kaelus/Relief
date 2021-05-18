@@ -46,12 +46,12 @@ public class ReliefController {
 	 * 
 	 */
 	// storage related
-	private static DKVSType dataManagerType;
-	private static DKVSType historyManagerType;
-	private static ReliefDKVS historyManager;
-	private static ReliefDKVS dataManager;
+	public static DKVSType dataManagerType;
+	public static DKVSType historyManagerType;
+	public static ReliefDKVS historyManager;
+	public static ReliefDKVS dataManager;
 	public static Thread historyUpdaterThread;
-	protected static BlockingQueue<HistoryUpdate> queue;
+	public static BlockingQueue<HistoryUpdate> queue;
 
 	// XMLRPC related
 	private static ReceiverXMLRPC receiver;
@@ -237,6 +237,7 @@ public class ReliefController {
 		switch (cmsg.type) {
 		
 		case MessageType.MSG_T_GET:
+		case MessageType.MSG_T_READ_ATTEST:
 			DebugLog.log("Get Request", this.loggerID);
 			returnObj = handleGetRequest(cmsg);
 			srvmsg = new Message();

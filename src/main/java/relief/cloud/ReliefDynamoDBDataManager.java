@@ -225,5 +225,11 @@ public class ReliefDynamoDBDataManager implements ReliefDKVS {
 		resp.version = Timestamper.getTimestamp(); 
 		return resp;
 	}
+
+	@Override
+	public void clear() {
+		deleteTable(tableName);		
+		createTable(tableName);
+	}
 	
 }
