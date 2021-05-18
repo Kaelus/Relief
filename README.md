@@ -17,10 +17,10 @@ Relief is a cloud storage service middleware provisioning a history server for c
 # How to run
 
 1. Run relief programs.
-   a. ReliefController
-      - `java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.cloud.ReliefController -c `pwd`/conf/relief.conf
+   a. ReliefServer
+      - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefServer -c `pwd`/conf/relief.conf
    b. ReliefClient
-      - `java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.cloud.ReliefClient -c `pwd`/conf/reliefClient.conf
+      - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefClient -c `pwd`/conf/reliefClient.conf
    c. ReliefYCSBDriver
 
 

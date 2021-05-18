@@ -7,7 +7,7 @@ import relief.cloud.ReliefController;
 
 public class ReliefLauncher {
 	
-	public enum AppType {ReliefController, ReliefClient, ReliefYCSBDriver};
+	public enum AppType {ReliefServer, ReliefClient, ReliefYCSBDriver};
 
 	public static void main(String[] args) throws Exception {
 		String appName = "ReliefController";
@@ -18,7 +18,7 @@ public class ReliefLauncher {
 				appName = args[i+1];
 			}
 		}
-		if (appName.contentEquals(AppType.ReliefController.toString())) {
+		if (appName.contentEquals(AppType.ReliefServer.toString())) {
 			System.out.println("Run ReliefController.main");
 			ReliefController.main(args);
 		} else if (appName.contentEquals(AppType.ReliefClient.toString())) {

@@ -1,6 +1,10 @@
 package relief.util;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
@@ -24,25 +28,68 @@ public class DigSig {
 	//keystore related constants  
     //private static String keyStoreFile = "data/mykeystore.bks";  
 	private static String keyStoreFile = "data/mykeystore.jks";
-    private static String password = "mypkpassword";  
-    private static String alias = "mycert";  
-	private static final String DIG_SIG_TYPE = "SHA256withRSA";
+    private static String keyStorePW = "mypkpassword";  
+    private static String digSigAlias = "mycert";  
+	private static String digSigType = "SHA256withRSA";
 	
 	private static KeyStore keystore = null;  
     private static char[] storePass = null;  
- 	private static boolean keyloadedFlag = false;
- 	 		
-	public DigSig() throws Exception {
-			
+ 	//private static boolean keyloadedFlag = false;
+
+    public DigSig() throws Exception {
+    	init();
+    }
+    
+	public DigSig(String configFile) throws Exception {
+		parseConfigInit(configFile);
+
+		init();
 	}
 	
-	public static void init() throws Exception, CertificateException, IOException {
+	private void parseConfigInit(String configFile) {
+		File confFile = new File(configFile);
+		if (!confFile.exists()) {
+			if (!confFile.mkdir()) {
+				System.err.println("Unable to find " + confFile);
+	            System.exit(1);
+	        }
+		}
+		try (BufferedReader br = new BufferedReader(new FileReader(configFile))) {
+		    String line;
+		    while ((line = br.readLine()) != null) {
+		       if (line.startsWith("keyStoreFile")) {
+		    	   String[] tokens = line.split("=");
+		    	   keyStoreFile = tokens[1];
+		    	   DebugLog.log("keyStoreFile=" + keyStoreFile);
+		       } else if (line.startsWith("digSigType")) {
+		    	   String[] tokens = line.split("=");
+		    	   digSigType = tokens[1];
+		    	   DebugLog.log("digSigType=" + digSigType);
+		       } else if (line.startsWith("digSigAlias")) {
+		    	   String[] tokens = line.split("=");
+		    	   digSigAlias = tokens[1];
+		    	   DebugLog.log("digSigAlias=" + digSigAlias);
+		       } else if (line.startsWith("keyStorePW")) {
+		    	   String[] tokens = line.split("=");
+		    	   keyStorePW = tokens[1];
+		    	   DebugLog.log("keyStorePW=" + keyStorePW);
+		       }
+		    }
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+	public void init() throws Exception, CertificateException, IOException {
 
 		System.out.println("init function executed");
 		
 		//keystore = KeyStore.getInstance("BKS");  
 		keystore = KeyStore.getInstance("JKS");
-	    storePass = password.toCharArray();  
+	    storePass = keyStorePW.toCharArray();  
 
 		// load the key store from file system
 	 	FileInputStream fileInputStream = new FileInputStream(keyStoreFile);
@@ -50,21 +97,22 @@ public class DigSig {
 	 	fileInputStream.close();
 	}
 	
-	public static byte[] getDigSig(byte[] plainText) throws Exception {
+	
+	public byte[] getDigSig(byte[] plainText) throws Exception {
 
-		if (!keyloadedFlag) {
-			init();
-			keyloadedFlag = true;
-		}
+		//if (!keyloadedFlag) {
+		//	init();
+		//	keyloadedFlag = true;
+		//}
 		
         /***************************signing********************************/  
         //read the private key  
         KeyStore.ProtectionParameter keyPass = new KeyStore.PasswordProtection(storePass);  
-        KeyStore.PrivateKeyEntry privKeyEntry = (KeyStore.PrivateKeyEntry) keystore.getEntry(alias, keyPass);  
+        KeyStore.PrivateKeyEntry privKeyEntry = (KeyStore.PrivateKeyEntry) keystore.getEntry(digSigAlias, keyPass);  
         PrivateKey privateKey = privKeyEntry.getPrivateKey();  
 		
         //initialize the signature with signature algorithm and private key  
-        Signature signature = Signature.getInstance(DIG_SIG_TYPE);  
+        Signature signature = Signature.getInstance(digSigType);  
         signature.initSign(privateKey);  
 
 
@@ -79,17 +127,17 @@ public class DigSig {
         return signedInfo;
 	}
 	
-	public static boolean verifyDigSig(byte[] plainText, byte[] signature) throws Exception {
+	public boolean verifyDigSig(byte[] plainText, byte[] signature) throws Exception {
 		
-		if (!keyloadedFlag) {
-			init();
-		}
+		//if (!keyloadedFlag) {
+		//	init();
+		//}
 		
 		/**************************verify the signature****************************/  
-        Certificate publicCert = keystore.getCertificate(alias);  
+        Certificate publicCert = keystore.getCertificate(digSigAlias);  
 
         //create signature instance with signature algorithm and public cert, to verify the signature.  
-        Signature verifySig = Signature.getInstance(DIG_SIG_TYPE);  
+        Signature verifySig = Signature.getInstance(digSigType);  
         verifySig.initVerify(publicCert);  
 
         //update signature with signature data.  
@@ -121,8 +169,10 @@ public class DigSig {
 
         byte[] dataInBytes = data.getBytes();  
         
-        byte[] signedInfo = getDigSig(dataInBytes);
-        if (verifyDigSig(dataInBytes, signedInfo)) {
+        DigSig digSig = new DigSig();
+        
+        byte[] signedInfo = digSig.getDigSig(dataInBytes);
+        if (digSig.verifyDigSig(dataInBytes, signedInfo)) {
         	System.out.println("DigSig main: testing functions succeeded!");
         } else {
         	System.out.println("DigSig main: testing functions FAILED");

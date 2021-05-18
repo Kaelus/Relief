@@ -28,6 +28,8 @@ public class ReliefClient {
 	// This Client
 	public ReliefClientStatus me;
 
+	public DigSig digSig;
+	
 	// Nested class for clients
 	public class ReliefClientStatus {
 
@@ -68,7 +70,7 @@ public class ReliefClient {
 	public String loggerID = null;
 	
 	// command constants
-	private static final int CMD_CSINTER_TEST = 3;
+	//private static final int CMD_CSINTER_TEST = 3;
 
 	// timestamp of the history segment lastly seen
 	public String lastHistTimestamp;
@@ -102,6 +104,8 @@ public class ReliefClient {
 		
 		lastHistTimestamp = Timestamper.convertToString(new Date(0L));
 
+		digSig = new DigSig(configFile);
+		
 	}
 
 	private void parseConfigInit(String configFile) {
@@ -189,7 +193,7 @@ public class ReliefClient {
 	
 	private void writeAttest(SortedMap<String, byte[]> histSeg) throws Exception {
 		byte[] histSegHash = ObjectSerializer.serialize(histSeg);
-		byte[] attestation = DigSig.getDigSig(histSegHash);
+		byte[] attestation = digSig.getDigSig(histSegHash);
 		Message req = new Message();
 		req.timestamp = Timestamper.getTimestamp();
 		req.type = MessageType.MSG_T_WRITE_ATTEST;
@@ -232,7 +236,7 @@ public class ReliefClient {
 	 * trigger sending Update to the server (originally, it should be triggered
 	 * by the timer.)
 	 */
-	private static void csinterTest(ReliefClient cl) throws Exception {
+	private static void sendClientRequests(ReliefClient cl) throws Exception {
 		// TODO Auto-generated method stub
 
 		boolean quitFlag = false;
@@ -241,12 +245,17 @@ public class ReliefClient {
 			BufferedReader br = new BufferedReader(new InputStreamReader(
 					System.in));
 			String input;
-			DebugLog.log("<csinterTest> What do you want to do? [1] get [2] put [3] read history [4] attest [5] quit");
+			DebugLog.log("<sendClientRequests> What do you want to do? [1] quit [2] get [3] put [4] read history [5] attestation");
 			while (!quitFlag && ((input = br.readLine()) != null)) {
 				try {
 					int cmd = Integer.valueOf(input);
 					switch (cmd) {
 					case 1:
+						DebugLog.log("[cmd=" + cmd
+								+ "] quit:");
+						quitFlag = true;
+						break;
+					case 2:
 						DebugLog.log("[cmd=" + cmd
 								+ "] Reading... Enter Key to get:");
 						input = br.readLine();
@@ -260,7 +269,7 @@ public class ReliefClient {
 						DebugLog.log("Get is Done...");
 
 						break;
-					case 2:
+					case 3:
 						DebugLog.log("[cmd=" + cmd
 								+ "] Writing... Enter Key to put:");
 						input = br.readLine();
@@ -279,7 +288,7 @@ public class ReliefClient {
 						DebugLog.log("Writing Done...");
 
 						break;
-					case 3:
+					case 4:
 						DebugLog.log("[cmd=" + cmd
 								+ "] Reading History:");
 						String startTime = Timestamper.incTimestamp(cl.lastHistTimestamp, 1);
@@ -297,7 +306,7 @@ public class ReliefClient {
 						}
 						DebugLog.log("Done with reading a history seg");
 						break;
-					case 4:
+					case 5:
 						DebugLog.log("[cmd=" + cmd
 								+ "] Attestation:");
 						startTime = Timestamper.incTimestamp(cl.lastHistTimestamp, 1);
@@ -317,19 +326,13 @@ public class ReliefClient {
 						DebugLog.log("Writing Attestation..");
 						cl.writeAttest(histSeg);
 						break;
-					case 5:
-						DebugLog.log("[cmd=" + cmd
-								+ "] Quitting csinter test...");
-						quitFlag = true;
-
-						break;
 					default:
 						break;
 					}
 				} catch (NumberFormatException e) {
 					e.printStackTrace();
 				}
-				DebugLog.log("<csinterTest> What do you want to do? [1] get [2] put [3] read history [4] attest [5] quit");
+				DebugLog.log("<sendClientRequests> What do you want to do? [1] quit [2] get [3] put [4] read history [5] attestation");				
 			}
 
 		} catch (IOException io) {
@@ -370,11 +373,8 @@ public class ReliefClient {
 			BufferedReader br = new BufferedReader(new InputStreamReader(
 					System.in));
 			String input;
-			System.out
-					.println("<main> What do you want to do? [1] run Unity [2] rpc test "
-							+ "[3] client-server interaction test [4] quit \n"
-							+ "[5] interface test [6] value exchange test \n"
-							+ "[7] replication test [8] Eventual Consistency test");
+			System.out.println("<main> What do you want to do? [1] quit "
+							+ "[2] sends client requests to the server ");
 			ReliefClient cl = null;
 			if (configFile == null) {
 				cl = new ReliefClient();
@@ -387,13 +387,14 @@ public class ReliefClient {
 				try {
 					int cmd = Integer.valueOf(input);
 					switch (cmd) {
-					case CMD_CSINTER_TEST:
+					case 1:
+						quitFlag = true;
+						break;
+					case 2:
 						DebugLog.log("[cmd=" + cmd
-								+ "] Testing Client-Server Interaction...");
-
+								+ "] Sending Client Requests to Servers");
 						// client-server interaction test
-						ReliefClient.csinterTest(cl);
-
+						ReliefClient.sendClientRequests(cl);
 						break;
 					default:
 						break;
@@ -402,11 +403,8 @@ public class ReliefClient {
 					e.printStackTrace();
 				}
 				if (!quitFlag) {
-					System.out
-							.println("<main> What do you want to do? [1] run Unity [2] rpc test "
-									+ "[3] client-server interaction test [4] quit \n"
-									+ "[5] interface test [6] value exchange test \n"
-									+ "[7] replication test [8] Eventual Consistency test");
+					System.out.println("<main> What do you want to do? [1] quit "
+							+ "[2] sends client requests to the server ");
 				}
 			}
 		} catch (Exception exception) {
