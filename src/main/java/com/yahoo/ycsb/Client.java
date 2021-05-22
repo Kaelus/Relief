@@ -454,6 +454,7 @@ public class Client
 
 		if (args.length==0)
 		{
+			System.out.println("BK: chk 1");
 			usageMessage();
 			System.exit(0);
 		}
@@ -526,6 +527,7 @@ public class Client
 				argindex++;
 				if (argindex>=args.length)
 				{
+					System.out.println("BK: chk 2");
 					usageMessage();
 					System.exit(0);
 				}
@@ -574,10 +576,22 @@ public class Client
 				argindex++;
 			}
 			else if (args[argindex].compareTo("-silent")==0) {
-				System.out.println("silnet opeiton");
+				System.out.println("silent option enabled");
 				DebugLog.VERBOSE = false;
 				argindex++;
 			}
+			// BK BEGIN
+			else if (args[argindex].compareTo("-c")==0) {
+				argindex++;
+				if (argindex>=args.length)
+				{
+					usageMessage();
+					System.exit(0);
+				}
+				props.setProperty("configFileName",args[argindex]);
+				argindex++;
+			}
+			// BK END
 			else
 			{
 				System.out.println("Unknown option "+args[argindex]);
@@ -593,6 +607,9 @@ public class Client
 
 		if (argindex!=args.length)
 		{
+			System.out.println("BK: chk 3");
+			System.out.println("argindex=" + argindex);
+			System.out.println("args.length=" + args.length);
 			usageMessage();
 			System.exit(0);
 		}

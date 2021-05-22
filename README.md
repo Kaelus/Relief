@@ -21,9 +21,14 @@ Relief is a cloud storage service middleware provisioning a history server for c
       - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefServer -c `pwd`/conf/relief.conf
    b. ReliefClient
       - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefClient -c `pwd`/conf/reliefClient.conf
-   c. ReliefYCSBDriver
+   c. ReliefYCSBDriver:
+      i. To load:
+      	 - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/conf/reliefClient.conf -load -P `pwd`/workloads/workloada -P `pwd`/workloads/relief-workload
+      ii. To do transactions:
+      	  - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/conf/reliefClient.conf -t -P workloads/workloada -P workloads/relief-workload
 
-
+ii. To do transactions:
+	 
 
 1. Run Rocky Controller (NBD server)
    - `java -jar `pwd`/build/libs/rocky-code-all-1.0.jar rocky.ctrl.RockyController`

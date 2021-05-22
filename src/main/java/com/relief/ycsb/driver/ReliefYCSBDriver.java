@@ -17,13 +17,20 @@ public class ReliefYCSBDriver {
 				System.out.println("argv["+j+"]=" + args[j++]);
 			}
 		}
-		int i=0;
-		for (String s : args) {
-			if (s.equals("silent")) {
+		boolean skipFlag = false;
+		for (int i = 1; i < args.length; i++) {
+			if (skipFlag) {
+				skipFlag = false;
+				continue;
+			}
+			String arg = args[i];
+			if (arg.equals("-silent")) {
 				System.out.println("Running the YCSB in silent mode..");
 				DebugLog.VERBOSE = false;
+			} else if (arg.equals("-r")) {
+				skipFlag = true;
 			} else {
-				filteredArrayList.add(s);
+				filteredArrayList.add(arg);
 			}
 		}
 		filteredArgs = filteredArrayList.toArray(new String[filteredArrayList.size()]);

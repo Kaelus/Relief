@@ -19,7 +19,7 @@ import relief.client.ReliefClient;
 import relief.util.DebugLog;
 import relief.util.Timestamper;
 
-public class ReliefDBClient extends DB {
+public class ReliefDB extends DB {
 	public static final String VERBOSE = "basicdb.verbose";
 	public static final String VERBOSE_DEFAULT = "true";
 
@@ -31,9 +31,13 @@ public class ReliefDBClient extends DB {
 
 	public static final String RESET_COUNT = "basicdb.resetcount";
 	public static final String RESET_COUNT_DEFAULT = Integer.MAX_VALUE + "";
+
+	public static final String CONFIG_FILE = "configFileName";
+	public static final String CONFIG_FILE_DEFAULT = "data/reliefClient.conf";
 	
 	//public UnityClientEngine cl;
 	public ReliefClient cl;
+	public String configFileName;
 	
 	boolean verbose;
 	int todelay;
@@ -45,19 +49,8 @@ public class ReliefDBClient extends DB {
 	
 	public static int opCount;
 	
-	public ReliefDBClient() {
+	public ReliefDB() {
 		todelay = 0;
-		
-		DebugLog.log("CaelusJournalDbClient constructor: instantiating CaelusStorageClientEngine instance");
-		try {
-			String configFilePathName = "data/config";
-			//cl = new UnityClientEngine(configFilePathName);
-			cl = new ReliefClient();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-			System.exit(1);
-		}		
 		opCount = 0;
 	}
 
@@ -100,6 +93,8 @@ public class ReliefDBClient extends DB {
 				CONSISTENCY_MODE_DEFAULT);
 		resetCount = Integer.parseInt(getProperties().getProperty(RESET_COUNT,
 				RESET_COUNT_DEFAULT));
+		configFileName = getProperties().getProperty(CONFIG_FILE, 
+				CONFIG_FILE_DEFAULT);
 
 		if (verbose) {
 			System.out
@@ -162,6 +157,17 @@ public class ReliefDBClient extends DB {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		
+		DebugLog.log("initializing ReliefDBClient.");
+		try {
+			DebugLog.log("Instantiate ReliefClient with configFileName=" + configFileName);
+			cl = new ReliefClient(configFileName);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			System.exit(1);
+		}		
+
 	}
 
 	/**

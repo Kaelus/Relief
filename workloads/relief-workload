@@ -1,0 +1,2 @@
+db=com.relief.ycsb.db.ReliefDB
+fieldcount=1
