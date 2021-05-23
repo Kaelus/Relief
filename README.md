@@ -14,21 +14,34 @@ Relief is a cloud storage service middleware provisioning a history server for c
    
 3. Configure relief.conf accordingly.
 
-# How to run
+# How to run relief programs.
+1. ReliefServer
+   - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefServer -c `pwd`/conf/relief.conf
 
-1. Run relief programs.
-   a. ReliefServer
-      - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefServer -c `pwd`/conf/relief.conf
-   b. ReliefClient
-      - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefClient -c `pwd`/conf/reliefClient.conf
-   c. ReliefYCSBDriver:
-      i. To load:
-      	 - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/conf/reliefClient.conf -load -P `pwd`/workloads/workloada -P `pwd`/workloads/relief-workload
-      ii. To do transactions:
-      	  - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/conf/reliefClient.conf -t -P workloads/workloada -P workloads/relief-workload
+2. ReliefClient
+   - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefClient -c `pwd`/conf/reliefClient.conf
 
-ii. To do transactions:
-	 
+3. ReliefYCSBDriver:
+   a. To load:
+      - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/conf/reliefClient.conf -load -P `pwd`/workloads/workloada -P `pwd`/workloads/relief-workload
+
+   b. To do transactions:
+      - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/conf/reliefClient.conf -t -P workloads/workloada -P workloads/relief-workload
+
+# How to Test Locally
+1. Edit configuration files for relief servers in run/r{1,2,..} properly.
+
+2. Edit configuration files for YCSB clients in run/c{1,2,..} properly.
+
+3. Run relief servers. (Example for r1. Repeat for r{2,..} by replacing r1 below.)
+   - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefServer -c `pwd`/run/r1/relief.conf
+
+4. Run relief clients. (Example for c1. Repeat for c{2,..} by replacing c1 below.)
+   - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefClient -c `pwd`/run/c1/reliefClient.conf
+
+5. Run YCSB clients. (Example for c1 to do transaction, assuming loaded. Repeat for c{2,..} by replacing c1 below.)
+      - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/run/c1/reliefClient.conf -t -P `pwd`/workloads/workloada -P `pwd`/workloads/relief-workload
+
 
 1. Run Rocky Controller (NBD server)
    - `java -jar `pwd`/build/libs/rocky-code-all-1.0.jar rocky.ctrl.RockyController`

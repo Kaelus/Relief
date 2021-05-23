@@ -70,7 +70,7 @@ public class ReliefController {
 	
 	// Evaluation related
 	public static HSModeType histSrvMode;
-	public static AtomicInteger gs;
+	//public static AtomicInteger gs;
 	public static SenderXMLRPC histUpForwarder;
 	
 
@@ -143,7 +143,7 @@ public class ReliefController {
 		cui = new ControlUserInterfaceRunner(this);
 		controlUIThread = new Thread(cui);
 		controlUIThread.start();
-		gs = new AtomicInteger(0);
+		//gs = new AtomicInteger(0);
 		if (reliefAddress.contentEquals(primaryAddress)) {
 			DebugLog.log("This Relief node is Primary");
 		} else {
@@ -290,8 +290,15 @@ public class ReliefController {
 			MessageDigest digest = MessageDigest.getInstance("SHA-256");
 			cmsg.hash = digest.digest(retValue);
 			// History Update
-			if (histSrvMode.equals(HSModeType.SCH)) {
+			if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
 				handleStronglyConsistentHistoryWriteRequest(cmsg);
+			} else if (histSrvMode.equals(HSModeType.SCH) && reliefAddress.equals(primaryAddress)) {
+				HistoryUpdate histUp = new HistoryUpdate();
+				//int ver = gs.getAndIncrement();
+				//histUp.version = "" + ver;
+				histUp.version = Timestamper.getTimestamp();
+				histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
+				queue.add(histUp);
 			} else if (histSrvMode.equals(HSModeType.CRHU)) {
 				String histKey = (String) resp.version;
 				HistoryUpdate histUp = new HistoryUpdate();
@@ -308,8 +315,15 @@ public class ReliefController {
 		DebugLog.log("cmsg=" + cmsg.toString());
 		ReliefDKVSResponse resp = dataManager.put(cmsg.key, cmsg.value);
 		cmsg.value = null;
-		if (histSrvMode.equals(HSModeType.SCH)) {
+		if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
 			handleStronglyConsistentHistoryWriteRequest(cmsg);
+		} else if (histSrvMode.equals(HSModeType.SCH) && reliefAddress.equals(primaryAddress)) {
+			HistoryUpdate histUp = new HistoryUpdate();
+			//int ver = gs.getAndIncrement();
+			//histUp.version = "" + ver;
+			histUp.version = Timestamper.getTimestamp();
+			histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
+			queue.add(histUp);
 		} else if (histSrvMode.equals(HSModeType.CRHU)) {
 			String histKey = (String) resp.version;
 			HistoryUpdate histUp = new HistoryUpdate();
@@ -317,6 +331,7 @@ public class ReliefController {
 			histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
 			queue.add(histUp);
 		}
+		
 		// we don't do history update for NoCRHU mode
 		return null;
 	}
@@ -324,12 +339,12 @@ public class ReliefController {
 	public Object handleReadHistoryRequest(Message cmsg) throws Exception {
 		DebugLog.log("cmsg=" + cmsg.toString());
 		byte[] retValue = null;
-		if (histSrvMode.equals(HSModeType.SCH) 
-				&& !reliefAddress.equals(primaryAddress)) {
+		if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
 			// forward this cmsg to the primary node
 			Message resp = histUpForwarder.send(cmsg);
 			retValue = resp.value;
-		} else {
+		} else if (histSrvMode.equals(HSModeType.CRHU)
+				|| (histSrvMode.equals(HSModeType.SCH) && reliefAddress.equals(primaryAddress))) {
 			// read the history by myself
 			String rangeRequested = new String(cmsg.value, "UTF-8");
 			String startTimeStr = rangeRequested.split("~")[0];
@@ -350,30 +365,38 @@ public class ReliefController {
 	}
 	
 	public Object handleStronglyConsistentHistoryWriteRequest(Message cmsg) throws Exception {
+		// Assert: This message type is allowed only under SCH mode.
+		if (!histSrvMode.equals(HSModeType.SCH)) {
+			DebugLog.elog("Assert: This message type is allowed only under SCH mode.");
+			System.exit(1);
+		}
 		DebugLog.log("cmsg=" + cmsg.toString());
 		byte[] retValue = null;
-		if (histSrvMode.equals(HSModeType.SCH)) {
-			if (reliefAddress.equals(primaryAddress)) {
-				// update the history with my global sequence number
-				HistoryUpdate histUp = new HistoryUpdate();
-				int ver = gs.getAndIncrement();
-				histUp.version = "" + ver;
-				histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
-				queue.add(histUp);
+		if (reliefAddress.equals(primaryAddress)) {
+			DebugLog.log("This is Primary. Update the history.");
+			// update the history with my global sequence number
+			HistoryUpdate histUp = new HistoryUpdate();
+			//int ver = gs.getAndIncrement();
+			//histUp.version = "" + ver;
+			histUp.version = Timestamper.getTimestamp();
+			if (DebugLog.VERBOSE) {
+				Message msgToLog = (Message) ObjectSerializer.deserialize(cmsg.value);
+				DebugLog.log("msgToLog=" + msgToLog.toString());
+				histUp.msgBytes = (byte[]) ObjectSerializer.serialize(msgToLog).clone();
 			} else {
-				// forward this cmsg to the primary node
-				Message req = new Message();
-				req.timestamp = Timestamper.getTimestamp();
-				req.type = MessageType.MSG_T_SCH_UP_FORWARD;
-				req.senderID = reliefAddress;
-				req.value = ObjectSerializer.serialize(cmsg);
-				Message resp = histUpForwarder.send(req);
-				DebugLog.log(resp.toString());
+				histUp.msgBytes = cmsg.value;
 			}
+			queue.add(histUp);
 		} else {
-			DebugLog.elog("ASSERT: handleStronglyConsistentHistoryWriteRequest " + 
-					"unsupports HSModeType=" + histSrvMode);
-			System.exit(1);
+			DebugLog.log("This is Secondary. Forward to the Primary.");
+			// forward this cmsg to the primary node
+			Message req = new Message();
+			req.timestamp = Timestamper.getTimestamp();
+			req.type = MessageType.MSG_T_SCH_UP_FORWARD;
+			req.senderID = reliefAddress;
+			req.value = ObjectSerializer.serialize(cmsg);
+			Message resp = histUpForwarder.send(req);
+			DebugLog.log(resp.toString());
 		}
 		return retValue;
 	}
