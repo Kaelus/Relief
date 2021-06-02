@@ -7,6 +7,7 @@ Relief is a cloud storage service middleware provisioning a history server for c
 `gradle clean fatJar`
 
 # Prerequisites
+
 1. OS: the followings are tested on Ubuntu 16.04
 
 2. DKVS needs to be set up and running. DynamoDB local mode is the default (do the following in the dynamodb home)
@@ -15,6 +16,7 @@ Relief is a cloud storage service middleware provisioning a history server for c
 3. Configure relief.conf accordingly.
 
 # How to run relief programs.
+
 1. ReliefServer
    - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefServer -c `pwd`/conf/relief.conf
 
@@ -29,6 +31,7 @@ Relief is a cloud storage service middleware provisioning a history server for c
       - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/conf/reliefClient.conf -t -P workloads/workloada -P workloads/relief-workload
 
 # How to Test Locally
+
 1. Edit configuration files for relief servers in run/r{1,2,..} properly.
 
 2. Edit configuration files for YCSB clients in run/c{1,2,..} properly.
@@ -40,51 +43,27 @@ Relief is a cloud storage service middleware provisioning a history server for c
    - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefClient -c `pwd`/run/c1/reliefClient.conf
 
 5. Run YCSB clients. (Example for c1 to do transaction, assuming loaded. Repeat for c{2,..} by replacing c1 below.)
-      - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/run/c1/reliefClient.conf -t -P `pwd`/workloads/workloada -P `pwd`/workloads/relief-workload
+      - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/run/c1/reliefClient.conf -t -P `pwd`/workloads/workloada -P `pwd`/workloads/relief-workload -threads 16 -s > transaction.dat
 
+# How to Get Empirical Results
 
-1. Run Rocky Controller (NBD server)
-   - `java -jar `pwd`/build/libs/rocky-code-all-1.0.jar rocky.ctrl.RockyController`
-
-2. Prepare the Rocky Block Device (nbd module & nbd client)
-   - `sudo modprobe nbd`
-   - `sudo lsmod | grep nbd`
-   - `sudo nbd-client -N <volume name> localhost /dev/nbd0`
-     - (testing is one of volume names)
-
-To disconnect the Rocky Block Device from the Rocky server, `sudo nbd-client -d /dev/nbd0`
-
-To remove Rocky Block Device module from the kernel, `sudo modprobe -r nbd`
-
-## To Test
-
-- `sudo mkfs.ext4 /dev/nbd0`
-- `sudo mount /dev/nbd0 /tmp`
-- `ls`
-- `sudo umount /tmp`
-
-# To Run multiple Rocky instances on a single host
-
-In the directory 'conf', there is an example rocky.conf configuration file.
-Use it at your discretion after setting port and lcvdName accordingly.
-Those configuration parameters should be assigned with a unique value for
-each rocky instance.
-
-It's good idea to copy and paste the conf/rocky.conf in another directory
-for each Rocky instance to run. For instance, we may have two files under
-the directory run: run/rocky.conf.1 and run/rocky.conf.2
-We should modify those configuration files accorinngly.
-
-run/rocky.conf.1 sets port=10811 and lcvdName=testing1 and the first Rocky
-instance will use /dev/nbd1 as the Rocky device driver.
-Then, execute following commands:
-- Run a Rocky instance with the correct configuration file path name.
-  - `java -jar `pwd`/build/libs/rocky-code-all-1.0.jar rocky.ctrl.RockyController run/rocky.conf.1`
-- Run nbd-client for the Rocky instance with correct parameters.
-  - `sudo nbd-client -N testing1 localhost 10811 /dev/nbd1`
-
-Likewise, suppose run/rocky.conf.2 sets port=10812 and lcvdName=testing2
-Also, say /dev/nbd2 is the Rocky device driver instance to use.
-- `java -jar \`pwd\`/build/libs/rocky-code-all-1.0.jar rocky.ctrl.RockyController run/rocky.conf.2`
-- `sudo nbd-client -N testing2 localhost 10812 /dev/nbd2`
+Measure the scalability: measure the throughput and the latency while varying the number of operations by increasing the number of YCSB threads each of which issues the fixed amount of operations.
+   - Run two relief controllers in SC-CRHU, EC-CRHU and No-CRHU modes.
+     - SC-CRHU: Sequentially Consistent Conflict-free Replicated History Update
+     - EC-CRHU: Eventually Consistent Conflict-free Replicated History Update
+     - No-CRHU: No Conflict-free Replicated History Update
+   - Run two YCSB instances.
+     - One YCSB instance for one relief controller.
+     - Another YCSB instance for the other relief controller.
+     - Adjust the number of threads: 1,2,4,8,16,32,64,128,256,512
+   - Run four different workloads:
+     - workloada (read heavy): read 0.5 and update 0.5
+     - workloadb (write heavy): read 0.95 and update 0.05
+     - workloadc (read only): read 1.0
+     - workloadf (read and read-modify-write): read 0.5 readmodifywrite 0.5
+   - Compare results between SC-CRHU, EC-CRHU and No-CRHU for each workload.
+     - Take the numbers of the YCSB instance for one relief controller.
+     - For SC-CRHU, distinguish numbers between the primary and the secondary.
+     
+   
 
