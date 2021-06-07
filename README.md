@@ -55,7 +55,7 @@ Measure the scalability: measure the throughput and the latency while varying th
    - Run two YCSB instances.
      - One YCSB instance for one relief controller.
      - Another YCSB instance for the other relief controller.
-     - Adjust the number of threads: 1,2,4,8,16,32,64,128,256,512
+     - Adjust the number of threads: 1,2,4,8,16,32,64,128
    - Run four different workloads:
      - workloada (read heavy): read 0.5 and update 0.5
      - workloadb (write heavy): read 0.95 and update 0.05
