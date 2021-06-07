@@ -36,8 +36,9 @@ public class ReliefDynamoDBDataManager implements ReliefDKVS {
 	String tableName = "ReliefDynamoDBDataManager";
     Table table;
     public static boolean consistentReads = false;
-	public static enum AWSRegionEnum {LOCAL, SEOUL, LONDON, OHIO, UNKNOWN};
+	public static enum AWSRegionEnum {LOCAL, LAN, SEOUL, LONDON, OHIO, UNKNOWN};
 	public static AWSRegionEnum region = AWSRegionEnum.LOCAL;
+	public static String backEndDataServerURL = "http://localhost:8000";
 	
 	public ReliefDynamoDBDataManager(String configName) throws IOException {
 		DebugLog.log("ReliefDynamoDBDataManager constructor.");
@@ -52,6 +53,10 @@ public class ReliefDynamoDBDataManager implements ReliefDKVS {
 			// To use the local version dynamodb for development
 			client = AmazonDynamoDBClientBuilder.standard().withEndpointConfiguration(
 					new AwsClientBuilder.EndpointConfiguration("http://localhost:8000", "us-east-1"))
+					.build();
+		} else if (region.equals(AWSRegionEnum.LAN)) {
+			client = AmazonDynamoDBClientBuilder.standard().withEndpointConfiguration(
+					new AwsClientBuilder.EndpointConfiguration(backEndDataServerURL, "us-east-1"))
 					.build();
 		} else if (region.equals(AWSRegionEnum.SEOUL)) {
 			client = AmazonDynamoDBClientBuilder.standard().withRegion(Regions.AP_NORTHEAST_2).build();
@@ -92,6 +97,8 @@ public class ReliefDynamoDBDataManager implements ReliefDKVS {
 		    	   String regionStr = tokens[1];
 		    	   if (regionStr.equals("LOCAL")) {
 		    		   region = AWSRegionEnum.LOCAL;
+		    	   } else if (regionStr.equals("LAN")) {
+		    		   region = AWSRegionEnum.LAN;
 		    	   } else if (regionStr.equals("SEOUL")) {
 		    		   region = AWSRegionEnum.SEOUL;
 		    	   } else if (regionStr.equals("LONDON")) {
@@ -119,6 +126,10 @@ public class ReliefDynamoDBDataManager implements ReliefDKVS {
 		    	   String consistentReadsStr = tokens[1];
 		    	   DebugLog.log("consistentReadsStr=" + consistentReadsStr);
 		    	   consistentReads = Boolean.parseBoolean(consistentReadsStr);
+		       } else if (line.startsWith("backEndDataServerURL")) {
+		    	   String[] tokens = line.split("=");
+		    	   backEndDataServerURL = tokens[1];
+		    	   DebugLog.log("backEndServerURL=" + backEndDataServerURL);
 		       }
 		    }
 		} catch (FileNotFoundException e) {

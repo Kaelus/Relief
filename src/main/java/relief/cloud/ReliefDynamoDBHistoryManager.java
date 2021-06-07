@@ -34,6 +34,7 @@ import com.amazonaws.services.dynamodbv2.model.ListTablesResult;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 
+import relief.cloud.ReliefDynamoDBDataManager.AWSRegionEnum;
 import relief.util.DebugLog;
 import relief.util.Timestamper;
 
@@ -44,8 +45,9 @@ public class ReliefDynamoDBHistoryManager implements ReliefDKVS {
 	String tableName = "ReliefDynamoDBHistoryManager";
     Table table;
     public static boolean consistentReads = false;
-	public static enum AWSRegionEnum {LOCAL, SEOUL, LONDON, OHIO, UNKNOWN};
+	public static enum AWSRegionEnum {LOCAL, LAN, SEOUL, LONDON, OHIO, UNKNOWN};
 	public static AWSRegionEnum region = AWSRegionEnum.LOCAL;
+	public static String backEndHistoryServerURL = "http://localhost:8000";
 	
 	public ReliefDynamoDBHistoryManager(String configName) throws IOException {
 		DebugLog.log("ReliefDynamoDBHistoryManager constructor.");
@@ -60,6 +62,10 @@ public class ReliefDynamoDBHistoryManager implements ReliefDKVS {
 			// To use the local version dynamodb for development
 			client = AmazonDynamoDBClientBuilder.standard().withEndpointConfiguration(
 					new AwsClientBuilder.EndpointConfiguration("http://localhost:8000", "us-east-1"))
+					.build();
+		} else if (region.equals(AWSRegionEnum.LAN)) {
+			client = AmazonDynamoDBClientBuilder.standard().withEndpointConfiguration(
+					new AwsClientBuilder.EndpointConfiguration(backEndHistoryServerURL, "us-east-1"))
 					.build();
 		} else if (region.equals(AWSRegionEnum.SEOUL)) {
 			client = AmazonDynamoDBClientBuilder.standard().withRegion(Regions.AP_NORTHEAST_2).build();
@@ -100,6 +106,8 @@ public class ReliefDynamoDBHistoryManager implements ReliefDKVS {
 		    	   String regionStr = tokens[1];
 		    	   if (regionStr.equals("LOCAL")) {
 		    		   region = AWSRegionEnum.LOCAL;
+		    	   } else if (regionStr.equals("LAN")) {
+		    		   region = AWSRegionEnum.LAN;
 		    	   } else if (regionStr.equals("SEOUL")) {
 		    		   region = AWSRegionEnum.SEOUL;
 		    	   } else if (regionStr.equals("LONDON")) {
@@ -127,6 +135,10 @@ public class ReliefDynamoDBHistoryManager implements ReliefDKVS {
 		    	   String consistentReadsStr = tokens[1];
 		    	   DebugLog.log("consistentReadsStr=" + consistentReadsStr);
 		    	   consistentReads = Boolean.parseBoolean(consistentReadsStr);
+		       } else if (line.startsWith("backEndHistoryServerURL")) {
+		    	   String[] tokens = line.split("=");
+		    	   backEndHistoryServerURL = tokens[1];
+		    	   DebugLog.log("backEndHistoryServerURL=" + backEndHistoryServerURL);
 		       }
 		    }
 		} catch (FileNotFoundException e) {
