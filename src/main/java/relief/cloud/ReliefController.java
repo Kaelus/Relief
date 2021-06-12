@@ -285,11 +285,39 @@ public class ReliefController {
 		DebugLog.log("cmsg=" + cmsg.toString());
 		ReliefDKVSResponse resp = dataManager.get(cmsg.key);
 		byte[] retValue = (byte[]) resp.data;
-		if (retValue != null) {
-			DebugLog.log("read value successfully:" + new String(retValue, "UTF-8"));
-			MessageDigest digest = MessageDigest.getInstance("SHA-256");
-			cmsg.hash = digest.digest(retValue);
-			// History Update
+		if (!histSrvMode.equals(HSModeType.NoCRHU)) {
+			if (retValue != null) {
+				DebugLog.log("read value successfully:" + new String(retValue, "UTF-8"));
+				MessageDigest digest = MessageDigest.getInstance("SHA-256");
+				cmsg.hash = digest.digest(retValue);
+				// History Update
+				if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
+					handleStronglyConsistentHistoryWriteRequest(cmsg);
+				} else if (histSrvMode.equals(HSModeType.SCH) && reliefAddress.equals(primaryAddress)) {
+					HistoryUpdate histUp = new HistoryUpdate();
+					//int ver = gs.getAndIncrement();
+					//histUp.version = "" + ver;
+					histUp.version = Timestamper.getTimestamp();
+					histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
+					queue.add(histUp);
+				} else if (histSrvMode.equals(HSModeType.CRHU)) {
+					String histKey = (String) resp.version;
+					HistoryUpdate histUp = new HistoryUpdate();
+					histUp.version = histKey;
+					histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
+					queue.add(histUp);
+				}
+				// we don't do history update for NoCRHU mode
+			}
+		}
+		return retValue;
+	}
+	
+	public Object handlePutRequest(Message cmsg) throws Exception {
+		DebugLog.log("cmsg=" + cmsg.toString());
+		ReliefDKVSResponse resp = dataManager.put(cmsg.key, cmsg.value);
+		cmsg.value = null;
+		if (!histSrvMode.equals(HSModeType.NoCRHU)) {
 			if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
 				handleStronglyConsistentHistoryWriteRequest(cmsg);
 			} else if (histSrvMode.equals(HSModeType.SCH) && reliefAddress.equals(primaryAddress)) {
@@ -306,30 +334,6 @@ public class ReliefController {
 				histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
 				queue.add(histUp);
 			}
-			// we don't do history update for NoCRHU mode
-		}
-		return retValue;
-	}
-	
-	public Object handlePutRequest(Message cmsg) throws Exception {
-		DebugLog.log("cmsg=" + cmsg.toString());
-		ReliefDKVSResponse resp = dataManager.put(cmsg.key, cmsg.value);
-		cmsg.value = null;
-		if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
-			handleStronglyConsistentHistoryWriteRequest(cmsg);
-		} else if (histSrvMode.equals(HSModeType.SCH) && reliefAddress.equals(primaryAddress)) {
-			HistoryUpdate histUp = new HistoryUpdate();
-			//int ver = gs.getAndIncrement();
-			//histUp.version = "" + ver;
-			histUp.version = Timestamper.getTimestamp();
-			histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
-			queue.add(histUp);
-		} else if (histSrvMode.equals(HSModeType.CRHU)) {
-			String histKey = (String) resp.version;
-			HistoryUpdate histUp = new HistoryUpdate();
-			histUp.version = histKey;
-			histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
-			queue.add(histUp);
 		}
 		
 		// we don't do history update for NoCRHU mode
@@ -339,6 +343,10 @@ public class ReliefController {
 	public Object handleReadHistoryRequest(Message cmsg) throws Exception {
 		DebugLog.log("cmsg=" + cmsg.toString());
 		byte[] retValue = null;
+		if (histSrvMode.equals(HSModeType.NoCRHU)) {
+			System.err.println("Assert: handleReadHistoryRequest is not supported in the NoCRHU mode");
+			System.exit(1);
+		}
 		if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
 			// forward this cmsg to the primary node
 			Message resp = histUpForwarder.send(cmsg);
