@@ -3,9 +3,12 @@ package relief.client;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.ObjectOutputStream;
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
@@ -20,6 +23,8 @@ import relief.util.DebugLog;
 import relief.util.DigSig;
 import relief.util.ObjectSerializer;
 import relief.util.Timestamper;
+import vcon.ConsistencyModel;
+import vcon.VConInput;
 
 public class ReliefClient {
 
@@ -75,6 +80,8 @@ public class ReliefClient {
 	// timestamp of the history segment lastly seen
 	public String lastHistTimestamp;
 	
+	public static String traceFileName;
+	
 	// constructor
 	public ReliefClient() throws Exception {
 		
@@ -103,7 +110,7 @@ public class ReliefClient {
 		sender.loggerID = this.loggerID;
 		
 		lastHistTimestamp = Timestamper.convertToString(new Date(0L));
-
+		
 		digSig = new DigSig(configFile);
 		
 	}
@@ -111,10 +118,15 @@ public class ReliefClient {
 	private void parseConfigInit(String configFile) {
 		File confFile = new File(configFile);
 		if (!confFile.exists()) {
-			if (!confFile.mkdir()) {
-				System.err.println("Unable to find " + confFile);
-	            System.exit(1);
-	        }
+			try {
+				if (!confFile.createNewFile()) {
+					System.err.println("Unable to find " + confFile);
+				    System.exit(1);
+				}
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
 		}
 		try (BufferedReader br = new BufferedReader(new FileReader(configFile))) {
 		    String line;
@@ -123,6 +135,10 @@ public class ReliefClient {
 		    	   String[] tokens = line.split("=");
 		    	   srvip = tokens[1];
 		    	   DebugLog.log("srvip=" + srvip);
+		       } else if (line.startsWith("traceFileName")) {
+		    	   String[] tokens = line.split("=");
+		    	   traceFileName = tokens[1];
+		    	   DebugLog.log("traceFileName=" + traceFileName);
 		       }
 		    }
 		} catch (FileNotFoundException e) {
@@ -162,6 +178,10 @@ public class ReliefClient {
 		req.count = me.ls++;
 		req.key = key;
 		req.value = value;
+		MessageDigest digest = MessageDigest.getInstance("SHA-256");
+		//MessageDigest digest = MessageDigest.getInstance("MD5");
+		req.hash = digest.digest(value); 
+				
 		Message resp = sender.send(req);
 		if (resp.type == MessageType.MSG_T_ACK) {
 			DebugLog.log("server responded with ACK");
@@ -298,13 +318,76 @@ public class ReliefClient {
 						DebugLog.log("Reading a history segment between " + startTime + " and " + endTime);
 						SortedMap<String, byte[]> histSeg = cl.readHistory(startTime, endTime);
 						Iterator<Entry<String, byte[]>> iter = histSeg.entrySet().iterator();
+						DebugLog.log("traceFileName=" + traceFileName);
+						File traceFile = new File(traceFileName);
+						if (!traceFile.exists()) {
+							if (!traceFile.createNewFile()) {
+								System.err.println("Unable to find " + traceFileName);
+					            System.exit(1);
+					        }
+						}
+						//BufferedWriter writer = new BufferedWriter(new FileWriter(traceFile));
+						FileOutputStream fileOut = new FileOutputStream(traceFile);
+						ObjectOutputStream objectOut = new ObjectOutputStream(fileOut);
+						int totalOpCount = 0;
+						int readOpCount = 0;
+						int writeOpCount = 0;
+						int otherOpCount = 0;
 						while (iter.hasNext()) {
 							Entry<String, byte[]> entry = (Entry<String, byte[]>) iter.next();
 							String timestamp = entry.getKey();
-							String valStr = ((Message) ObjectSerializer.deserialize(entry.getValue())).toString();
+							Message histEntry = (Message) ObjectSerializer.deserialize(entry.getValue());
+							String valStr = histEntry.toString();
 							DebugLog.log(timestamp + "->" + valStr);
+//							String opTypeStr = null;
+//							if (histEntry.type == MessageType.MSG_T_GET) {
+//								opTypeStr = "R";
+//							} else if (histEntry.type == MessageType.MSG_T_PUT) {
+//								opTypeStr = "W";
+//							} else {
+//								// skip operations that are not read or write
+//								continue;
+//							}
+							totalOpCount++;
+							ConsistencyModel.OpType opType= null;
+							if (histEntry.type == MessageType.MSG_T_GET) {
+								opType = ConsistencyModel.OpType.RD;
+								readOpCount++;
+							} else if (histEntry.type == MessageType.MSG_T_PUT) {
+								opType = ConsistencyModel.OpType.WR;
+								writeOpCount++;
+							} else {
+								otherOpCount++;
+								// skip operations that are not read or write
+								continue;
+							}
+							//String val = new String(histEntry.hash);
+							String val = null;
+							if (histEntry.value == null) {
+								val = "null";
+							} else {
+								val = new String(histEntry.value);
+							}
+							long timestampLong = Timestamper.parseTimestampString(histEntry.timestamp).getTime();
+							VConInput vcin = new VConInput(histEntry.senderID, 
+									histEntry.key, opType, val, timestampLong);
+							objectOut.writeObject(vcin);
+//							String vcinStr = "";
+//							vcinStr += "clientID=" + histEntry.senderID + ",";
+//							vcinStr += "key=" + histEntry.key + ",";
+//							vcinStr += "opTypeStr=" + opTypeStr + ",";
+//							vcinStr += "val=" + val + ",";
+//							vcinStr += "tsStr=" + timestampLong + "\n";							
+//							writer.write(vcinStr);
 						}
+//						writer.flush();
+//						writer.close();
+						objectOut.close();
 						DebugLog.log("Done with reading a history seg");
+						DebugLog.log("totalOpCount=" + totalOpCount);
+						DebugLog.log("readOpCount=" + readOpCount);
+						DebugLog.log("writeOpCount=" + writeOpCount);
+						DebugLog.log("otherOpCount=" + otherOpCount);
 						break;
 					case 5:
 						DebugLog.log("[cmd=" + cmd

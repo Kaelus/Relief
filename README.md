@@ -30,6 +30,9 @@ Relief is a cloud storage service middleware provisioning a history server for c
    b. To do transactions:
       - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c `pwd`/conf/reliefClient.conf -t -P workloads/workloada -P workloads/relief-workload
 
+4. ReliefVerifier:
+   - java -jar `pwd`/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefVerifier -c `pwd`/conf/reliefVerifier.conf
+
 # How to Test Locally
 
 1. Edit configuration files for relief servers in run/r{1,2,..} properly.
@@ -47,7 +50,7 @@ Relief is a cloud storage service middleware provisioning a history server for c
 
 # How to Get Empirical Results
 
-Measure the scalability: measure the throughput and the latency while varying the number of operations by increasing the number of YCSB threads each of which issues the fixed amount of operations.
+1. Measure the scalability: measure the throughput and the latency while varying the number of operations by increasing the number of YCSB threads each of which issues the fixed amount of operations.
    - Run two relief controllers in SC-CRHU, EC-CRHU and No-CRHU modes.
      - SC-CRHU: Sequentially Consistent Conflict-free Replicated History Update
      - EC-CRHU: Eventually Consistent Conflict-free Replicated History Update
@@ -65,5 +68,10 @@ Measure the scalability: measure the throughput and the latency while varying th
      - Take the numbers of the YCSB instance for one relief controller.
      - For SC-CRHU, distinguish numbers between the primary and the secondary.
      
-   
+2. Run verification over the history
+   - Run a relief controller in EC-CRHU mode.
+   - Run a YCSB instance with multiple threads.
+   - Run a relief client and read history to save the history in a trace file.
+   - Run a relief verifier to verify the trace file's history.
+   - Measure the time taken while varying the number of YCSB transactions.
 

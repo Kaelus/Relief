@@ -1,2 +1,3 @@
 db=com.relief.ycsb.db.ReliefDB
 fieldcount=1
+operationcount=10000

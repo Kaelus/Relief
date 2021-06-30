@@ -10,4 +10,7 @@ bin/
 lib/
 *~
 .gradle/
-
+data/traceFile
+history
+scStore
+transaction*

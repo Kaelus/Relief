@@ -289,7 +289,9 @@ public class ReliefController {
 			if (retValue != null) {
 				DebugLog.log("read value successfully:" + new String(retValue, "UTF-8"));
 				MessageDigest digest = MessageDigest.getInstance("SHA-256");
+				//MessageDigest digest = MessageDigest.getInstance("MD5");
 				cmsg.hash = digest.digest(retValue);
+				//cmsg.value = retValue;
 				// History Update
 				if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
 					handleStronglyConsistentHistoryWriteRequest(cmsg);
@@ -316,7 +318,7 @@ public class ReliefController {
 	public Object handlePutRequest(Message cmsg) throws Exception {
 		DebugLog.log("cmsg=" + cmsg.toString());
 		ReliefDKVSResponse resp = dataManager.put(cmsg.key, cmsg.value);
-		cmsg.value = null;
+		//cmsg.value = null;
 		if (!histSrvMode.equals(HSModeType.NoCRHU)) {
 			if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
 				handleStronglyConsistentHistoryWriteRequest(cmsg);

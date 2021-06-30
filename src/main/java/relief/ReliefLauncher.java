@@ -4,10 +4,12 @@ import com.relief.ycsb.driver.ReliefYCSBDriver;
 
 import relief.client.ReliefClient;
 import relief.cloud.ReliefController;
+import relief.verifier.ReliefVerifier;
 
 public class ReliefLauncher {
 	
-	public enum AppType {ReliefServer, ReliefClient, ReliefYCSBDriver};
+	public enum AppType {ReliefServer, ReliefClient, 
+		ReliefYCSBDriver, ReliefVerifier};
 
 	public static void main(String[] args) throws Exception {
 		String appName = "ReliefController";
@@ -27,6 +29,9 @@ public class ReliefLauncher {
 		} else if (appName.contentEquals(AppType.ReliefYCSBDriver.toString())) {
 			System.out.println("Run ReliefYCSBDriver.main");
 			ReliefYCSBDriver.main(args);
+		} else if (appName.contentEquals(AppType.ReliefVerifier.toString())) {
+			System.out.println("Run ReliefVerifier.main");
+			ReliefVerifier.main(args);
 		} else {
 			System.err.println("Unknown application type:" + appName);
 			System.exit(1);
