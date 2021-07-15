@@ -1,3 +1,5 @@
 srvip=127.0.0.1:10080
 
+keyStoreFile=/home/ben/project/relief/relief-code/data/mykeystore.jks
+
 traceFileName=/home/ben/project/relief/relief-code/data/traceFile

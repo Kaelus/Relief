@@ -21,7 +21,7 @@ i=0
 while [ $i -lt $num_server ]; do
     THIS_DYNAMO_PORT=`expr $BASE_DYNAMO_PORT + $i`
     THIS_RELIEF_PORT=`expr $BASE_RELIEF_PORT + $i`
-    NODE_ID="s$i"
+    NODE_ID="r$i"
     
     # Setup Relief Servers
     test -d $working_dir/$NODE_ID && rm -rf $working_dir/$NODE_ID
