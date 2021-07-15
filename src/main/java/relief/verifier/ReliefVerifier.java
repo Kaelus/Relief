@@ -148,7 +148,7 @@ public class ReliefVerifier {
 			long endTime = System.currentTimeMillis();
 			long cumTime = endTime - startTime;
 			DebugLog.log("time taken(ms)=" + cumTime);
-			DebugLog.log("norm. time taken (normalized to 1000 ops)=" + (cumTime / (double)opCount * 1.0) * 1000 ) ;
+			DebugLog.log("avg time (ms/ops)=" + (cumTime / ((double)opCount * 1.0)) ) ;
 		} catch (FileNotFoundException e1) {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();

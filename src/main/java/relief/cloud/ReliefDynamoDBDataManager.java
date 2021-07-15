@@ -189,6 +189,8 @@ public class ReliefDynamoDBDataManager implements ReliefDKVS {
         catch (Exception e) {
         	DebugLog.elog("Unable to read item: " + key);
         	DebugLog.elog(e.getMessage());
+        	resp.version = Timestamper.getTimestamp();
+        	resp.data = "null".getBytes();
         }
 
         return resp;

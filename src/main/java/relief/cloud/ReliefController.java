@@ -286,31 +286,38 @@ public class ReliefController {
 		ReliefDKVSResponse resp = dataManager.get(cmsg.key);
 		byte[] retValue = (byte[]) resp.data;
 		if (!histSrvMode.equals(HSModeType.NoCRHU)) {
+		//if (retValue != null) {
+			MessageDigest digest = MessageDigest.getInstance("SHA-256");
+			//MessageDigest digest = MessageDigest.getInstance("MD5");
 			if (retValue != null) {
 				DebugLog.log("read value successfully:" + new String(retValue, "UTF-8"));
-				MessageDigest digest = MessageDigest.getInstance("SHA-256");
-				//MessageDigest digest = MessageDigest.getInstance("MD5");
 				cmsg.hash = digest.digest(retValue);
 				//cmsg.value = retValue;
-				// History Update
-				if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
-					handleStronglyConsistentHistoryWriteRequest(cmsg);
-				} else if (histSrvMode.equals(HSModeType.SCH) && reliefAddress.equals(primaryAddress)) {
-					HistoryUpdate histUp = new HistoryUpdate();
-					//int ver = gs.getAndIncrement();
-					//histUp.version = "" + ver;
-					histUp.version = Timestamper.getTimestamp();
-					histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
-					queue.add(histUp);
-				} else if (histSrvMode.equals(HSModeType.CRHU)) {
-					String histKey = (String) resp.version;
-					HistoryUpdate histUp = new HistoryUpdate();
-					histUp.version = histKey;
-					histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
-					queue.add(histUp);
-				}
-				// we don't do history update for NoCRHU mode
+			} else {
+				DebugLog.log("read value unsuccessfully. Set it to be null");
+				resp.data = "null".getBytes();
+				cmsg.hash = digest.digest("null".getBytes());
 			}
+
+			// History Update
+			if (histSrvMode.equals(HSModeType.SCH) && !reliefAddress.equals(primaryAddress)) {
+				handleStronglyConsistentHistoryWriteRequest(cmsg);
+			} else if (histSrvMode.equals(HSModeType.SCH) && reliefAddress.equals(primaryAddress)) {
+				HistoryUpdate histUp = new HistoryUpdate();
+				//int ver = gs.getAndIncrement();
+				//histUp.version = "" + ver;
+				histUp.version = Timestamper.getTimestamp();
+				histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
+				queue.add(histUp);
+			} else if (histSrvMode.equals(HSModeType.CRHU)) {
+				String histKey = (String) resp.version;
+				HistoryUpdate histUp = new HistoryUpdate();
+				histUp.version = histKey;
+				histUp.msgBytes = (byte[]) ObjectSerializer.serialize(cmsg).clone();
+				queue.add(histUp);
+			}
+			// we don't do history update for NoCRHU mode
+		//}
 		}
 		return retValue;
 	}

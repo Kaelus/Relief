@@ -1,3 +1,5 @@
 db=com.relief.ycsb.db.ReliefDB
 fieldcount=1
-operationcount=10000
+operationcount=5000
+readproportion=1
+updateproportion=0
