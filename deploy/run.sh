@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-if [ $# -lt 4 ]; then
+if [ $# -lt 6 ]; then
     echo "usage: run.sh <num_server> <num_ycsb> <num_threads> <working_dir> <relief_dir> <dynamo_dir>"
     exit 1
 fi
@@ -32,11 +32,7 @@ done
 
 i=0
 while [ $i -lt $num_ycsb ]; do
-    THIS_RELIEF_PORT=`expr $BASE_RELIEF_PORT + $i`
     NODE_ID="c$i"
     java -jar $relief_dir/build/libs/relief-code-all-1.0.jar relief.ReliefLauncher -r ReliefYCSBDriver -c $working_dir/$NODE_ID/reliefClient.conf -t -P $relief_dir/workloads/workloada -P $relief_dir/workloads/relief-workload -threads $num_threads -s > $working_dir/$NODE_ID/transaction.dat &
     i=`expr $i + 1`
 done
-
-
-    
