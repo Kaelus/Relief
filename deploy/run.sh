@@ -30,6 +30,10 @@ while [ $i -lt $num_server ]; do
     i=`expr $i + 1`
 done
 
+echo "waiting before running ycsb"
+sleep 5
+echo "waiting done"
+
 i=0
 while [ $i -lt $num_ycsb ]; do
     NODE_ID="c$i"
